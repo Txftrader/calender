@@ -72,7 +72,7 @@ h1 { margin: 0; font-size: 1.7rem; font-weight: 700; text-wrap: balance; }
 }
 .btn:hover { border-color: var(--weekly); }
 .btn:disabled { opacity: 0.4; cursor: default; }
-.btn:focus-visible, .row:focus-visible, summary:focus-visible { outline: 2px solid var(--weekly); outline-offset: 2px; }
+.btn:focus-visible, .row:focus-visible, .sum:focus-visible { outline: 2px solid var(--weekly); outline-offset: 2px; }
 .btn.on { background: var(--weekly); color: #fff; border-color: var(--weekly); }
 :root:not([data-theme="light"]) .btn.on { color: #0b1020; }
 .ctl .lbl { font-weight: 700; min-width: 4.5em; text-align: center; font-variant-numeric: tabular-nums; }
@@ -94,18 +94,19 @@ h1 { margin: 0; font-size: 1.7rem; font-weight: 700; text-wrap: balance; }
 .badge.shift { outline: 1px dashed currentColor; outline-offset: 1px; }
 
 .top { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; align-items: start; }
-details.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
-details.panel summary {
-  list-style: none; cursor: pointer; padding: 12px 16px; font-weight: 700;
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.sum {
+  width: 100%; background: transparent; border: 0; text-align: left; font: inherit; color: inherit;
+  cursor: pointer; padding: 12px 16px; font-weight: 700; touch-action: manipulation;
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
 }
-details.panel summary::-webkit-details-marker { display: none; }
-details.panel summary .cnt { color: var(--muted); font-weight: 400; font-size: 0.8rem; margin-left: auto; }
-details.panel summary::after {
+.sum .cnt { color: var(--muted); font-weight: 400; font-size: 0.8rem; margin-left: auto; }
+.sum::after {
   content: ""; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
   transform: rotate(45deg); transition: transform .15s; flex: none; margin-bottom: 3px;
 }
-details.panel[open] summary::after { transform: rotate(-135deg); margin-bottom: -3px; }
+.open > .sum::after { transform: rotate(-135deg); margin-bottom: -3px; }
+.panel:not(.open) .rows { display: none; }
 .rows { display: flex; flex-direction: column; padding: 0 16px 10px; max-height: 420px; overflow-y: auto; }
 .row {
   display: grid; grid-template-columns: 5.4em 2.2em 1fr; gap: 8px; align-items: center; text-align: left;
@@ -160,7 +161,8 @@ details.panel[open] summary::after { transform: rotate(-135deg); margin-bottom: 
 .chip.t { box-shadow: 0 0 0 2px var(--today); }
 .chip.p { outline: 3px solid var(--alert-m-bg); outline-offset: 0; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-.legend-box summary { cursor: pointer; font-size: 0.85rem; color: var(--muted); padding: 6px 0; }
+.legend-box .sum { font-size: 0.85rem; color: var(--muted); font-weight: 400; padding: 6px 0; justify-content: flex-start; }
+.legend-box:not(.open) .legend { display: none; }
 .legend-box .legend { margin-top: 4px; }
 .agenda { display: none; flex-direction: column; margin-top: 10px; border-top: 1px solid var(--line); }
 .single .agenda { display: flex; }
@@ -181,7 +183,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   .calhead .ctl { width: 100%; justify-content: space-between; }
   #monNav { flex: 1; justify-content: flex-end; flex-wrap: nowrap; }
   .top { grid-template-columns: minmax(0, 1fr); }
-  details.panel summary { min-height: 48px; }
+  .panel .sum { min-height: 48px; }
   .rows { padding: 0 10px 8px; }
   .row { min-height: 44px; grid-template-columns: 5.2em 2.2em minmax(0, 1fr); }
   .row .note { overflow-wrap: anywhere; }
@@ -214,10 +216,10 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   .sub, .ctl .lbl, .calhead h2 { display: none; }
   header .ctl { width: auto; gap: 6px; }
   .btn { min-height: 32px; padding: 3px 10px; font-size: 0.85rem; }
-  .legend-box summary { font-size: 0.78rem; padding: 0; }
+  .legend-box .sum { font-size: 0.78rem; padding: 0; }
   .top { gap: 6px; }
-  details.panel summary { min-height: 36px; padding: 4px 12px; font-size: 0.9rem; }
-  .rows { max-height: 40vh; }
+  .panel .sum { min-height: 36px; padding: 4px 12px; font-size: 0.9rem; }
+  .rows { max-height: 260px; }
   .row { min-height: 38px; }
   .calhead { flex-direction: row; align-items: center; gap: 6px; }
   .calhead .ctl { gap: 6px; }
@@ -236,7 +238,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   .agenda { margin-top: 6px; }
   .ag { padding: 4px 2px; font-size: 0.78rem; }
 }
-@media (prefers-reduced-motion: reduce) { .cell.flash { animation: none; } details.panel summary::after { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .cell.flash { animation: none; } .sum::after { transition: none; } }
 </style>
 
 <div class="wrap">
@@ -256,8 +258,8 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
   <div id="notice" class="notice" hidden></div>
 
-  <details class="legend-box" id="legend">
-  <summary>圖例說明</summary>
+  <div class="legend-box" id="legend">
+  <button class="sum" type="button" aria-expanded="false">圖例說明</button>
   <div class="legend">
     <span><span class="sw-red">紅字</span>放假 / 補假 / 週日</span>
     <span><span class="sw-green">綠字</span>一般週六</span>
@@ -267,17 +269,17 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     <span><span class="chip t"></span>黑框＋「今天」標籤：今天日期</span>
     <span><span class="chip p"></span>橘色粗框閃爍：從清單點選的結算日</span>
   </div>
-  </details>
+  </div>
 
   <div class="top">
-    <details class="panel">
-      <summary><span id="upTitle">近期結算日</span><span class="cnt" id="upCnt"></span></summary>
+    <div class="panel">
+      <button class="sum" type="button" aria-expanded="false"><span id="upTitle">近期結算日</span><span class="cnt" id="upCnt"></span></button>
       <div class="rows" id="upcoming"></div>
-    </details>
-    <details class="panel">
-      <summary><span>全年結算日</span><span class="cnt" id="allCnt"></span></summary>
+    </div>
+    <div class="panel">
+      <button class="sum" type="button" aria-expanded="false"><span>全年結算日</span><span class="cnt" id="allCnt"></span></button>
       <div class="rows" id="allList"></div>
-    </details>
+    </div>
   </div>
 
   <section>
@@ -422,7 +424,10 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   function goTo(k) {
     var p = k.split("-"), y = +p[0], m = +p[1] - 1;
     state.year = y; state.month = m;
-    document.querySelectorAll("details.panel").forEach(function (d) { d.open = false; });
+    document.querySelectorAll(".panel").forEach(function (d) {
+      d.classList.remove("open");
+      d.querySelector(".sum").setAttribute("aria-expanded", "false");
+    });
     renderTop(); renderCal();
     var target = document.querySelector('[data-k="' + k + '"]');
     var host = state.mode === "year" ? document.getElementById("m-" + m) : document.getElementById("calhead");
@@ -571,7 +576,18 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   document.getElementById("modeY").addEventListener("click", function () { state.mode = "year"; renderCal(); });
 
   // 圖例：寬螢幕預設展開，手機預設收合
-  try { document.getElementById("legend").open = window.matchMedia("(min-width: 641px)").matches; } catch (e) {}
+  Array.prototype.forEach.call(document.querySelectorAll(".sum"), function (b) {
+    b.addEventListener("click", function () {
+      var o = b.parentNode.classList.toggle("open");
+      b.setAttribute("aria-expanded", o ? "true" : "false");
+    });
+  });
+  try {
+    if (window.matchMedia("(min-width: 641px)").matches) {
+      document.getElementById("legend").classList.add("open");
+      document.querySelector("#legend .sum").setAttribute("aria-expanded", "true");
+    }
+  } catch (e) {}
   renderAlerts(); renderTop(); renderCal();
   // 跨日後自動更新提醒
   setInterval(function () { if (keyOf(new Date()) !== shownTodayKey) { renderAlerts(); renderTop(); renderCal(); } }, 60000);
