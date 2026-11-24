@@ -387,6 +387,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   function goTo(k) {
     var p = k.split("-"), y = +p[0], m = +p[1] - 1;
     state.year = y; state.month = m;
+    document.querySelectorAll("details.panel").forEach(function (d) { d.open = false; });
     renderTop(); renderCal();
     var target = document.querySelector('[data-k="' + k + '"]');
     var host = state.mode === "year" ? document.getElementById("m-" + m) : document.getElementById("calhead");
@@ -479,17 +480,17 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     var ag = el("div", "agenda"), agn = 0;
     for (var dd = 1; dd <= dim; dd++) {
       var kk = key(y, m, dd), hh = hol[kk], ss = settle[kk];
-      if (!hh && !ss) continue;
+      if (!hh && !(ss && ss.from.length)) continue;
       agn++;
       var it = el("div", "ag" + (kk === todayKey ? " today" : ""));
       it.appendChild(el("span", "", fmt(kk)));
       var mid = el("span", "");
       if (hh) mid.appendChild(el("span", "h", hh.name + " "));
-      if (ss) mid.appendChild(el("span", "s", typeName(ss.type) + (ss.from.length ? "（順延，原 " + ss.from.map(fmt).join("、") + " 休市）" : "")));
+      if (ss && ss.from.length) mid.appendChild(el("span", "s", typeName(ss.type) + "（順延，原 " + ss.from.map(fmt).join("、") + " 休市）"));
       if (kk === todayKey) mid.appendChild(el("span", "s", " 今天"));
       it.appendChild(mid);
       var bs = el("span", "bs");
-      if (ss) bs.appendChild(el("span", "badge " + ss.type + (ss.from.length ? " shift" : ""), ss.type === "m" ? "月" : "週"));
+      if (ss && ss.from.length) bs.appendChild(el("span", "badge " + ss.type + " shift", ss.type === "m" ? "月" : "週"));
       it.appendChild(bs);
       ag.appendChild(it);
     }
