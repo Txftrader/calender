@@ -1,0 +1,484 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>台灣結算日曆</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: 結算提醒橫幅 → 標題與年份切換 → 圖例 → 兩個可收合清單（近期／全年結算，點日期跳到月曆）→ 月曆（當月／全年切換）。 */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --fg: #1d2330;
+  --muted: #667085;
+  --line: #e1e5ec;
+  --red: #c62828;
+  --green: #1f7a45;
+  --weekly: #2456c9;
+  --weekly-bg: #e6edfb;
+  --monthly: #8a4b00;
+  --monthly-bg: #ffe2a8;
+  --alert-w-bg: #2456c9;
+  --alert-w-fg: #ffffff;
+  --alert-m-bg: #c25a00;
+  --alert-m-fg: #ffffff;
+  --today: #1d2330;
+  --font: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151c; --surface: #1b202b; --fg: #e8ebf2; --muted: #98a2b3; --line: #2b3242;
+    --red: #ff7b72; --green: #5fd38d; --weekly: #8fb0ff; --weekly-bg: #223158;
+    --monthly: #ffd27a; --monthly-bg: #5a3d08; --today: #e8ebf2;
+    --alert-w-bg: #3d6ae0; --alert-w-fg: #ffffff; --alert-m-bg: #f0a030; --alert-m-fg: #231500;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151c; --surface: #1b202b; --fg: #e8ebf2; --muted: #98a2b3; --line: #2b3242;
+  --red: #ff7b72; --green: #5fd38d; --weekly: #8fb0ff; --weekly-bg: #223158;
+  --monthly: #ffd27a; --monthly-bg: #5a3d08; --today: #e8ebf2;
+  --alert-w-bg: #3d6ae0; --alert-w-fg: #ffffff; --alert-m-bg: #f0a030; --alert-m-fg: #231500;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font);
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  line-height: 1.5;
+}
+button { font: inherit; color: inherit; }
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+
+/* 結算提醒 */
+.alerts { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+.alert {
+  border-radius: 8px; padding: 14px 18px; display: flex; flex-direction: column; gap: 2px; min-width: 0;
+}
+.alert .big { font-size: 1.7rem; font-weight: 700; line-height: 1.25; }
+.alert .small { font-size: 0.85rem; opacity: 0.92; }
+.alert.w { background: var(--alert-w-bg); color: var(--alert-w-fg); }
+.alert.m { background: var(--alert-m-bg); color: var(--alert-m-fg); }
+.alert.none { background: var(--surface); color: var(--muted); border: 1px solid var(--line); }
+.alert.none .big { font-size: 1.05rem; font-weight: 500; }
+
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
+h1 { margin: 0; font-size: 1.7rem; font-weight: 700; text-wrap: balance; }
+.sub { color: var(--muted); font-size: 0.85rem; margin-top: 2px; }
+.ctl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.btn {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+  padding: 6px 12px; cursor: pointer;
+}
+.btn:hover { border-color: var(--weekly); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn:focus-visible, .row:focus-visible, summary:focus-visible { outline: 2px solid var(--weekly); outline-offset: 2px; }
+.btn.on { background: var(--weekly); color: #fff; border-color: var(--weekly); }
+:root:not([data-theme="light"]) .btn.on { color: #0b1020; }
+.ctl .lbl { font-weight: 700; min-width: 4.5em; text-align: center; font-variant-numeric: tabular-nums; }
+.seg { display: inline-flex; }
+.seg .btn:first-child { border-radius: 6px 0 0 6px; }
+.seg .btn:last-child { border-radius: 0 6px 6px 0; margin-left: -1px; }
+
+.notice { background: var(--monthly-bg); color: var(--monthly); border-radius: 6px; padding: 8px 12px; font-size: 0.85rem; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 0.85rem; color: var(--muted); align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw-red { color: var(--red); font-weight: 700; }
+.sw-green { color: var(--green); font-weight: 700; }
+.badge {
+  display: inline-block; min-width: 1.35em; text-align: center; font-size: 0.7rem; font-weight: 700;
+  line-height: 1.35; border-radius: 4px; padding: 0 3px;
+}
+.badge.w { background: var(--weekly-bg); color: var(--weekly); }
+.badge.m { background: var(--monthly-bg); color: var(--monthly); }
+.badge.shift { outline: 1px dashed currentColor; outline-offset: 1px; }
+
+.top { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; align-items: start; }
+details.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+details.panel summary {
+  list-style: none; cursor: pointer; padding: 12px 16px; font-weight: 700;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+details.panel summary::-webkit-details-marker { display: none; }
+details.panel summary .cnt { color: var(--muted); font-weight: 400; font-size: 0.8rem; margin-left: auto; }
+details.panel summary::after {
+  content: ""; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg); transition: transform .15s; flex: none; margin-bottom: 3px;
+}
+details.panel[open] summary::after { transform: rotate(-135deg); margin-bottom: -3px; }
+.rows { display: flex; flex-direction: column; padding: 0 16px 10px; max-height: 420px; overflow-y: auto; }
+.row {
+  display: grid; grid-template-columns: 5.4em 2.2em 1fr; gap: 8px; align-items: center; text-align: left;
+  padding: 7px 4px; border: 0; border-top: 1px solid var(--line); background: transparent; cursor: pointer;
+  font-size: 0.9rem; font-variant-numeric: tabular-nums; border-radius: 4px;
+}
+.row:first-child { border-top: 0; }
+.row:hover { background: var(--bg); }
+.row .note { color: var(--muted); font-size: 0.8rem; }
+.row.next { font-weight: 700; }
+.empty { color: var(--muted); font-size: 0.9rem; padding: 6px 4px; }
+
+.calhead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; scroll-margin-top: 12px; }
+.calhead h2 { margin: 0; font-size: 1.15rem; }
+.months { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 16px; }
+.months.single { grid-template-columns: minmax(0, 680px); }
+.month { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px; min-width: 0; scroll-margin-top: 12px; }
+.month h3 { margin: 0 0 8px; font-size: 1rem; display: flex; justify-content: space-between; align-items: baseline; }
+.month h3 small { color: var(--muted); font-weight: 400; font-size: 0.75rem; }
+.grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.dow { text-align: center; font-size: 0.75rem; color: var(--muted); padding-bottom: 2px; }
+.dow.sun { color: var(--red); }
+.dow.sat { color: var(--green); }
+.cell {
+  min-height: 58px; border-radius: 5px; padding: 3px 3px 2px; font-size: 0.72rem;
+  display: flex; flex-direction: column; gap: 1px; border: 1px solid transparent; overflow: hidden;
+}
+.single .cell { min-height: 84px; padding: 5px; }
+.single .cell .n { font-size: 1.1rem; }
+.single .cell .nm { font-size: 0.75rem; }
+.single .badge { font-size: 0.8rem; }
+.cell.blank { visibility: hidden; }
+.cell .n { font-size: 0.95rem; font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.cell.red .n, .cell.red .nm { color: var(--red); }
+.cell.green .n { color: var(--green); }
+.cell.red.hol { background: color-mix(in srgb, var(--red) 9%, transparent); }
+.cell .nm { font-size: 0.62rem; line-height: 1.15; word-break: break-all; }
+.cell .b { display: flex; gap: 2px; flex-wrap: wrap; margin-top: auto; }
+.cell.set-m { border-color: var(--monthly); }
+.cell.set-w { border-color: color-mix(in srgb, var(--weekly) 45%, transparent); }
+.cell.today { box-shadow: 0 0 0 3px var(--today); background: color-mix(in srgb, var(--today) 12%, transparent); }
+.cell.today .n { background: var(--today); color: var(--bg); border-radius: 999px; padding: 0 7px; align-self: flex-start; }
+.cell .tag { font-size: 0.65rem; font-weight: 700; line-height: 1.1; }
+.single .cell .tag { font-size: 0.8rem; }
+.cell.picked { outline: 3px solid var(--alert-m-bg); outline-offset: 1px; }
+.cell.flash { position: relative; z-index: 1; animation: flash 0.7s ease-in-out 5; }
+@keyframes flash {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; transform: scale(1); }
+  50% { box-shadow: 0 0 0 4px var(--alert-m-bg), 0 0 16px 5px var(--alert-m-bg); background: var(--monthly-bg); transform: scale(1.1); }
+}
+.chip { display: inline-block; width: 1.3em; height: 1.1em; border-radius: 4px; }
+.chip.t { box-shadow: 0 0 0 2px var(--today); }
+.chip.p { outline: 3px solid var(--alert-m-bg); outline-offset: 0; }
+@media (max-width: 420px) {
+  .cell { min-height: 54px; } .single .cell { min-height: 66px; }
+  .row { grid-template-columns: 4.8em 2.2em 1fr; } .alert .big { font-size: 1.45rem; }
+}
+@media (prefers-reduced-motion: reduce) { .cell.flash { animation: none; } details.panel summary::after { transition: none; } }
+</style>
+
+<div class="wrap">
+  <section class="alerts" id="alerts" aria-live="polite"></section>
+
+  <header>
+    <div>
+      <h1 id="title">台灣結算日曆</h1>
+      <div class="sub" id="sub"></div>
+    </div>
+    <div class="ctl">
+      <button id="prevY" class="btn" type="button" aria-label="上一年">‹ 上一年</button>
+      <span class="lbl" id="yr"></span>
+      <button id="nextY" class="btn" type="button" aria-label="下一年">下一年 ›</button>
+    </div>
+  </header>
+
+  <div id="notice" class="notice" hidden></div>
+
+  <div class="legend">
+    <span><span class="sw-red">紅字</span>放假 / 補假 / 週日</span>
+    <span><span class="sw-green">綠字</span>一般週六</span>
+    <span><span class="badge w">週</span>週結算（週三、週五）</span>
+    <span><span class="badge m">月</span>月結算（每月第三個週三）</span>
+    <span><span class="badge w shift">週</span>虛線：原定結算日休市，順延至此</span>
+    <span><span class="chip t"></span>黑框＋「今天」標籤：今天日期</span>
+    <span><span class="chip p"></span>橘色粗框閃爍：從清單點選的結算日</span>
+  </div>
+
+  <div class="top">
+    <details class="panel">
+      <summary><span id="upTitle">近期結算日</span><span class="cnt" id="upCnt"></span></summary>
+      <div class="rows" id="upcoming"></div>
+    </details>
+    <details class="panel">
+      <summary><span>全年結算日</span><span class="cnt" id="allCnt"></span></summary>
+      <div class="rows" id="allList"></div>
+    </details>
+  </div>
+
+  <section>
+    <div class="calhead" id="calhead">
+      <h2 id="calTitle"></h2>
+      <div class="ctl">
+        <span class="seg" role="group" aria-label="顯示範圍">
+          <button id="modeM" class="btn" type="button">當月</button>
+          <button id="modeY" class="btn" type="button">全年</button>
+        </span>
+        <span id="monNav" class="ctl">
+          <button id="prevM" class="btn" type="button" aria-label="上個月">‹</button>
+          <button id="curM" class="btn" type="button">本月</button>
+          <button id="nextM" class="btn" type="button" aria-label="下個月">›</button>
+        </span>
+      </div>
+    </div>
+    <div class="months" id="months" style="margin-top:12px"></div>
+  </section>
+</div>
+
+<script>
+(function () {
+  var WD = ["日", "一", "二", "三", "四", "五", "六"];
+  var pad = function (n) { return String(n).padStart(2, "0"); };
+  var key = function (y, m, d) { return y + "-" + pad(m + 1) + "-" + pad(d); };
+  var keyOf = function (d) { return key(d.getFullYear(), d.getMonth(), d.getDate()); };
+
+  // 2026（民國115年）依行政院人事行政總處辦公日曆表。h=放假，m=補假
+  var DATA = {
+    2026: [
+      ["01-01", "開國紀念日", "h"], ["02-15", "小年夜", "h"], ["02-16", "除夕", "h"],
+      ["02-17", "春節", "h"], ["02-18", "春節", "h"], ["02-19", "春節", "h"],
+      ["02-20", "小年夜補假", "m"], ["02-27", "和平紀念日補假", "m"], ["02-28", "和平紀念日", "h"],
+      ["04-03", "兒童節補假", "m"], ["04-04", "兒童節", "h"], ["04-05", "清明節", "h"],
+      ["04-06", "清明節補假", "m"], ["05-01", "勞動節", "h"], ["06-19", "端午節", "h"],
+      ["09-25", "中秋節", "h"], ["09-28", "教師節", "h"], ["10-09", "國慶日補假", "m"],
+      ["10-10", "國慶日", "h"], ["10-25", "光復節", "h"], ["10-26", "光復節補假", "m"],
+      ["12-25", "行憲紀念日", "h"]
+    ]
+  };
+  var FIXED = [[1, 1, "開國紀念日"], [2, 28, "和平紀念日"], [4, 4, "兒童節"], [4, 5, "清明節"],
+    [5, 1, "勞動節"], [9, 28, "教師節"], [10, 10, "國慶日"], [10, 25, "光復節"], [12, 25, "行憲紀念日"]];
+
+  function holidaysFor(y) {
+    var map = {};
+    if (DATA[y]) {
+      DATA[y].forEach(function (r) { map[y + "-" + r[0]] = { name: r[1], kind: r[2] }; });
+      return map;
+    }
+    FIXED.forEach(function (f) { map[key(y, f[0] - 1, f[1])] = { name: f[2], kind: "h" }; });
+    FIXED.forEach(function (f) {
+      var dow = new Date(y, f[0] - 1, f[1]).getDay();
+      if (dow !== 0 && dow !== 6) return;
+      var step = dow === 6 ? -1 : 1, d = new Date(y, f[0] - 1, f[1]);
+      do { d.setDate(d.getDate() + step); } while (d.getDay() === 0 || d.getDay() === 6 || map[keyOf(d)]);
+      map[keyOf(d)] = { name: f[2] + "補假", kind: "m" };
+    });
+    return map;
+  }
+
+  var cache = {};
+  function build(y) {
+    if (cache[y]) return cache[y];
+    var hol = holidaysFor(y);
+    var isOff = function (d) { var w = d.getDay(); return w === 0 || w === 6 || !!hol[keyOf(d)]; };
+    var settle = {};
+    var put = function (d, type, from) {
+      var k = keyOf(d), cur = settle[k];
+      if (!cur) { settle[k] = { type: type, from: from ? [from] : [] }; return; }
+      if (type === "m") cur.type = "m";
+      if (from) cur.from.push(from);
+    };
+    var place = function (orig, type) {
+      var d = new Date(orig.getTime()), from = null;
+      if (isOff(d)) {
+        from = keyOf(d);
+        do { d.setDate(d.getDate() + 1); } while (isOff(d));
+        if (d.getFullYear() !== y) return;
+      }
+      put(d, type, from);
+    };
+    for (var m = 0; m < 12; m++) {
+      var dim = new Date(y, m + 1, 0).getDate(), seenWed = 0;
+      for (var day = 1; day <= dim; day++) {
+        var dt = new Date(y, m, day), w = dt.getDay();
+        if (w === 3) { seenWed++; place(dt, seenWed === 3 ? "m" : "w"); }
+        else if (w === 5) place(dt, "w");
+      }
+    }
+    return (cache[y] = { hol: hol, settle: settle });
+  }
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  var fmt = function (k) {
+    var p = k.split("-"), d = new Date(+p[0], +p[1] - 1, +p[2]);
+    return +p[1] + "/" + +p[2] + "（" + WD[d.getDay()] + "）";
+  };
+  var typeName = function (t) { return t === "m" ? "月結算" : "週結算"; };
+
+  var state = { year: new Date().getFullYear(), month: new Date().getMonth(), mode: "month" };
+  var shownTodayKey = "";
+
+  /* ---------- 頂部提醒 ---------- */
+  function lookup(d) { return build(d.getFullYear()).settle[keyOf(d)]; }
+  function renderAlerts() {
+    var now = new Date();
+    var box = document.getElementById("alerts");
+    shownTodayKey = keyOf(now);
+    box.textContent = "";
+    var tm = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    var items = [["今天", now], ["明天", tm]], any = false;
+    items.forEach(function (it) {
+      var s = lookup(it[1]);
+      if (!s) return;
+      any = true;
+      var a = el("div", "alert " + s.type);
+      a.appendChild(el("div", "big", it[0] + typeName(s.type)));
+      a.appendChild(el("div", "small", fmt(keyOf(it[1])) + (s.from.length ? "　順延（原 " + s.from.map(fmt).join("、") + " 休市）" : "")));
+      box.appendChild(a);
+    });
+    if (!any) {
+      var a = el("div", "alert none");
+      var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1), nxt = null, guard = 0;
+      while (!nxt && guard++ < 400) {
+        d.setDate(d.getDate() + 1);
+        var s2 = lookup(d);
+        if (s2) nxt = { k: keyOf(d), s: s2 };
+      }
+      a.appendChild(el("div", "big", "今天、明天沒有結算"));
+      if (nxt) a.appendChild(el("div", "small", "下一次：" + fmt(nxt.k) + " " + typeName(nxt.s.type)));
+      box.appendChild(a);
+    }
+  }
+
+  /* ---------- 跳到月曆 ---------- */
+  function goTo(k) {
+    var p = k.split("-"), y = +p[0], m = +p[1] - 1;
+    state.year = y; state.month = m;
+    renderTop(); renderCal();
+    var target = document.querySelector('[data-k="' + k + '"]');
+    var host = state.mode === "year" ? document.getElementById("m-" + m) : document.getElementById("calhead");
+    if (host) host.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (target) { target.classList.remove("flash"); target.classList.add("picked"); void target.offsetWidth; target.classList.add("flash"); }
+  }
+
+  function listRows(parent, ks, settle, todayKey, markNext) {
+    parent.textContent = "";
+    if (!ks.length) { parent.appendChild(el("div", "empty", "沒有後續結算日。")); return; }
+    ks.forEach(function (k, i) {
+      var s = settle[k];
+      var r = el("button", "row" + (markNext && i === 0 ? " next" : ""));
+      r.type = "button";
+      r.appendChild(el("span", "", fmt(k)));
+      r.appendChild(el("span", "badge " + s.type + (s.from.length ? " shift" : ""), s.type === "m" ? "月" : "週"));
+      var note = s.from.length ? "順延（原 " + s.from.map(fmt).join("、") + " 休市）" : typeName(s.type);
+      if (k === todayKey) note = "今天・" + note;
+      r.appendChild(el("span", "note", note));
+      r.addEventListener("click", function () { goTo(k); });
+      parent.appendChild(r);
+    });
+  }
+
+  /* ---------- 標題、統計、清單 ---------- */
+  function renderTop() {
+    var y = state.year, info = build(y), hol = info.hol, settle = info.settle;
+    var thisYear = new Date().getFullYear(), todayKey = keyOf(new Date());
+    document.getElementById("yr").textContent = y;
+    document.getElementById("title").textContent = y + " 台灣結算日曆";
+    var hc = 0, mc = 0;
+    Object.keys(hol).forEach(function (k) { if (hol[k].kind === "h") hc++; else mc++; });
+    var ks = Object.keys(settle).sort();
+    var wk = ks.filter(function (k) { return settle[k].type === "w"; }).length;
+    document.getElementById("sub").textContent =
+      "民國 " + (y - 1911) + " 年　國定假日 " + hc + " 天、補假 " + mc + " 天　週結算 " + wk + " 次、月結算 " + (ks.length - wk) + " 次";
+
+    var notice = document.getElementById("notice");
+    if (DATA[y]) notice.hidden = true;
+    else {
+      notice.hidden = false;
+      notice.textContent = y + " 年的官方辦公日曆尚未收錄。目前只依固定日期推算（元旦、和平紀念日、兒童節、清明節、勞動節、教師節、國慶日、光復節）及其補假；春節、端午、中秋等農曆節日需待官方公布後補上。";
+    }
+
+    var list = ks, title = "近期結算日";
+    if (y === thisYear) list = ks.filter(function (k) { return k >= todayKey; });
+    else { title = "年初起的結算日"; }
+    document.getElementById("upTitle").textContent = title;
+    var shown = list.slice(0, 8);
+    document.getElementById("upCnt").textContent = shown.length ? "共 " + shown.length + " 筆" : "";
+    listRows(document.getElementById("upcoming"), shown, settle, todayKey, y === thisYear);
+    document.getElementById("allCnt").textContent = "共 " + ks.length + " 筆";
+    listRows(document.getElementById("allList"), ks, settle, todayKey, false);
+  }
+
+  /* ---------- 月曆 ---------- */
+  function monthBox(y, m, info, single) {
+    var hol = info.hol, settle = info.settle, todayKey = keyOf(new Date());
+    var box = el("div", "month");
+    box.id = "m-" + m;
+    var cnt = Object.keys(settle).filter(function (k) { return +k.split("-")[1] === m + 1; }).length;
+    var h = el("h3", "", (m + 1) + " 月");
+    h.appendChild(el("small", "", "結算 " + cnt + " 次"));
+    box.appendChild(h);
+    var g = el("div", "grid");
+    WD.forEach(function (w, i) { g.appendChild(el("div", "dow" + (i === 0 ? " sun" : i === 6 ? " sat" : ""), w)); });
+    var first = new Date(y, m, 1).getDay(), dim = new Date(y, m + 1, 0).getDate();
+    for (var i = 0; i < first; i++) g.appendChild(el("div", "cell blank"));
+    for (var d = 1; d <= dim; d++) {
+      var k = key(y, m, d), w = new Date(y, m, d).getDay(), hd = hol[k], s = settle[k];
+      var cls = "cell";
+      if (hd || w === 0) cls += " red"; else if (w === 6) cls += " green";
+      if (hd) cls += " hol";
+      if (s) cls += s.type === "m" ? " set-m" : " set-w";
+      if (k === todayKey) cls += " today";
+      var c = el("div", cls);
+      c.setAttribute("data-k", k);
+      c.appendChild(el("div", "n", d));
+      if (k === todayKey) c.appendChild(el("div", "tag", "今天"));
+      if (hd) c.appendChild(el("div", "nm", hd.name));
+      if (s) {
+        var bw = el("div", "b");
+        bw.appendChild(el("span", "badge " + s.type + (s.from.length ? " shift" : ""), s.type === "m" ? "月" : "週"));
+        c.appendChild(bw);
+        c.title = typeName(s.type) + (s.from.length ? "（順延，原 " + s.from.map(fmt).join("、") + " 休市）" : "");
+      }
+      g.appendChild(c);
+    }
+    box.appendChild(g);
+    return box;
+  }
+
+  function renderCal() {
+    var y = state.year, info = build(y), root = document.getElementById("months");
+    var single = state.mode === "month";
+    root.textContent = "";
+    root.className = "months" + (single ? " single" : "");
+    document.getElementById("modeM").className = "btn" + (single ? " on" : "");
+    document.getElementById("modeY").className = "btn" + (single ? "" : " on");
+    document.getElementById("modeM").setAttribute("aria-pressed", single);
+    document.getElementById("modeY").setAttribute("aria-pressed", !single);
+    document.getElementById("monNav").style.display = single ? "" : "none";
+    document.getElementById("calTitle").textContent = single ? y + " 年 " + (state.month + 1) + " 月" : y + " 年全年月曆";
+    if (single) root.appendChild(monthBox(y, state.month, info, true));
+    else for (var m = 0; m < 12; m++) root.appendChild(monthBox(y, m, info, false));
+  }
+
+  function stepMonth(delta) {
+    var d = new Date(state.year, state.month + delta, 1);
+    state.year = d.getFullYear(); state.month = d.getMonth();
+    renderTop(); renderCal();
+  }
+  function stepYear(delta) {
+    state.year += delta;
+    var now = new Date();
+    state.month = state.year === now.getFullYear() ? now.getMonth() : 0;
+    renderTop(); renderCal();
+  }
+
+  document.getElementById("prevY").addEventListener("click", function () { stepYear(-1); });
+  document.getElementById("nextY").addEventListener("click", function () { stepYear(1); });
+  document.getElementById("prevM").addEventListener("click", function () { stepMonth(-1); });
+  document.getElementById("nextM").addEventListener("click", function () { stepMonth(1); });
+  document.getElementById("curM").addEventListener("click", function () {
+    var now = new Date(); state.year = now.getFullYear(); state.month = now.getMonth(); renderTop(); renderCal();
+  });
+  document.getElementById("modeM").addEventListener("click", function () { state.mode = "month"; renderCal(); });
+  document.getElementById("modeY").addEventListener("click", function () { state.mode = "year"; renderCal(); });
+
+  renderAlerts(); renderTop(); renderCal();
+  // 跨日後自動更新提醒
+  setInterval(function () { if (keyOf(new Date()) !== shownTodayKey) { renderAlerts(); renderTop(); renderCal(); } }, 60000);
+})();
+</script>
+
+</body></html>
