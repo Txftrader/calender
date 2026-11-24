@@ -200,6 +200,41 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   .agenda { display: flex; }
   .alert { padding: 12px 14px; }
   .alert .big { font-size: 1.45rem; }
+
+  /* 緊湊版：讓手機一個畫面看完 */
+  body { padding-block: 8px 14px; }
+  .wrap { gap: 8px; }
+  .alerts { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px; }
+  .alert { padding: 6px 10px; gap: 0; }
+  .alert .big { font-size: 1.05rem; line-height: 1.3; }
+  .alert .small { font-size: 0.7rem; }
+  .alert.none .big { font-size: 0.9rem; }
+  header { flex-wrap: wrap; align-items: center; gap: 6px; }
+  h1 { font-size: 1.05rem; }
+  .sub, .ctl .lbl, .calhead h2 { display: none; }
+  header .ctl { width: auto; gap: 6px; }
+  .btn { min-height: 32px; padding: 3px 10px; font-size: 0.85rem; }
+  .legend-box summary { font-size: 0.78rem; padding: 0; }
+  .top { gap: 6px; }
+  details.panel summary { min-height: 36px; padding: 4px 12px; font-size: 0.9rem; }
+  .rows { max-height: 40vh; }
+  .row { min-height: 38px; }
+  .calhead { flex-direction: row; align-items: center; gap: 6px; }
+  .calhead .ctl { gap: 6px; }
+  #monNav { gap: 6px; }
+  .months { margin-top: 6px !important; gap: 8px; }
+  .month { padding: 6px 8px 8px; }
+  .month h3 { margin: 0 0 4px; font-size: 0.9rem; }
+  .month h3 small { font-size: 0.7rem; }
+  .grid { gap: 2px; }
+  .dow { font-size: 0.7rem; padding-bottom: 0; }
+  .cell, .single .cell { min-height: 34px; padding: 2px 3px; gap: 0; }
+  .cell .n, .single .cell .n { font-size: 0.8rem; line-height: 1.25; }
+  .cell.today .n { padding: 0 5px; }
+  .badge, .single .badge { font-size: 0.6rem; line-height: 1.25; padding: 0 2px; min-width: 1.2em; }
+  .cell.today { box-shadow: 0 0 0 2px var(--today); }
+  .agenda { margin-top: 6px; }
+  .ag { padding: 4px 2px; font-size: 0.78rem; }
 }
 @media (prefers-reduced-motion: reduce) { .cell.flash { animation: none; } details.panel summary::after { transition: none; } }
 </style>
